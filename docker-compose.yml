@@ -1,0 +1,21 @@
+# 生产环境
+version: "1.0"
+
+services:
+  web:
+    restart: always
+    image: js-hunter-server:0.0.1
+    volumes:
+      - /js-hunter/web:/home/jshunterserver
+    ports:
+      - "3300:3300"
+  mysql:
+    restart: always
+    image: yourlibrary/mysql
+    volumes:
+      - /js-hunter/volumes/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=js_hunter_docker
+    ports:
+      - "3301:3306"

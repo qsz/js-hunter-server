@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>错误日志数据</title>
+    <script src="/js/babel.min.js"></script>
+    <script src="/js/react.production.min.js"></script>
+    <script src="/js/react-dom.production.min.js"></script>
+    <script src="/js/moment.min.js"></script>
+    <script src="/js/antd.min.js"></script>
+    <script src="/js/echarts.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/antd.min.css" />
+    <style>
+      p {
+        padding: 12px;
+      }
+      body,
+      #app,
+      .container {
+        width: 100%;
+        height: 100%;
+      }
+      .container {
+        padding: 12px;
+        overflow: auto;
+        background-color: #eeeeee;
+      }
+      .log-info {
+        word-wrap: break-word;
+        margin-bottom: 6px;
+      }
+      .log-info-type {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .log-info-label {
+        font-weight: 600;
+      }
+      .card {
+        width: 100%;
+        margin: 12px auto;
+      }
+      .card-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #135200;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/babel">
+      const xhrGet = ({ url, params, success, fail }) => {
+        const xhr = new XMLHttpRequest();
+        let server = url;
+        if (params) {
+          server = `${url}?${params}`;
+        }
+        xhr.open('GET', server);
+        // 响应状态错误监听函数
+        xhr.onreadystatechange = function () {
+          try {
+            // 监听readyState 4:响应内容解析完成
+            // 监听HTTP状态码
+            if (xhr.readyState == 4 && (xhr.status == 200 || xhr.status == 0)) {
+              if (success) {
+                const res = JSON.parse(xhr.responseText);
+                success(res);
+              }
+            }
+          } catch (error) {
+            if (fail) {
+              fail(error);
+            }
+          }
+        };
+        xhr.send();
+      };
+
+      const Button = antd.Button;
+      const Table = antd.Table;
+      const Card = antd.Card;
+      const Row = antd.Row;
+      const Col = antd.Col;
+      const Tag = antd.Tag;
+      const Modal = antd.Modal;
+      const Radio = antd.Radio;
+      const errorIcon = (
+        <svg
+          t="1641800990535"
+          class="icon"
+          viewBox="0 0 1024 1024"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          p-id="22244"
+          width="30"
+          height="30"
+        >
+          <path
+            d="M850.92864 606.67904c-114.8416-248.8064-40.75008-328.59136-40.00256-329.45152 1.28-1.26976 1.45408-3.31776 0.4864-4.90496-1.05472-1.53088-3.04128-2.13504-4.78208-1.408-1.67424 0.65024-161.51552 67.23584-141.4144 214.8864-43.8528-39.39328-248.67328-241.61792-123.3664-479.4368 0.768-1.46944 0.52736-3.2768-0.61952-4.49536-1.1008-1.24416-2.94912-1.6384-4.36736-0.98816-2.72896 1.11104-66.64192 28.43648-117.54496 97.4592C372.34176 161.8944 328.60672 274.33984 387.4816 448.3072c21.39648 81.82272-18.97472 148.21376-40.61696 176.37888 5.34016-19.41504 11.99616-52.34176 10.89536-90.09152C356.0448 479.3344 336.11776 402.98496 250.93632 353.56672c-1.31072-0.73728-3.00544-0.67072-4.24448 0.27648-1.3312 0.96768-1.8944 2.49856-1.52064 4.096 0.27648 1.45408 32.13824 146.80064-23.7568 214.07744-48.25088 58.06592-95.52384 159.04256-69.93408 252.61568 21.44256 78.2336 88.45824 137.99936 199.13216 177.44384 28.40576 8.7296 55.5776 15.33952 85.59616 20.93568 1.94048 0.46592 3.87584-0.72704 4.46464-2.57536 0.5632-2.00704-0.36352-4.08064-2.13504-4.9152-56.88832-24.64256-115.50208-75.96544-71.94112-180.27008 41.4976-89.86624 34.09408-136.21248 25.76384-156.08832 21.44256 12.07296 64.0512 43.45856 53.42208 98.54976-0.28672 1.60768 0.42496 3.30752 1.84832 4.12672 1.44384 0.86016 3.2256 0.768 4.49536-0.29184 1.37728-1.08032 129.44896-106.46016 71.21408-235.58144 28.70272 16.56832 104.7808 74.4192 59.90912 207.22176-14.94016 57.1648 25.73824 98.176 27.45856 99.9424 1.36704 1.30048 3.38944 1.52064 4.98176 0.4608 1.49504-0.92672 2.11456-2.90304 1.45408-4.71552-1.32608-3.56864-31.65184-85.28384 34.15552-130.41664-3.4816 20.98176-8.99072 72.87296 14.592 101.1968 21.15584 25.47712 41.60512 67.23584 35.34848 108.05248-4.36736 28.69248-21.33504 52.86912-50.60096 71.81824-1.67424 1.20832-2.28864 3.24096-1.408 5.0688 0.7936 1.82784 2.90816 2.64704 4.80256 2.048 72.27904-23.936 167.04512-71.40352 208.33792-162.00192C892.90752 777.91232 889.0368 697.87136 850.92864 606.67904"
+            p-id="22245"
+            fill="#ff4d4f"
+          ></path>
+        </svg>
+      );
+      const warnIcon = (
+        <svg
+          t="1641801645751"
+          class="icon"
+          viewBox="0 0 1024 1024"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          p-id="4612"
+          width="30"
+          height="30"
+        >
+          <path
+            d="M803.84 897.536H303.104c-43.008 0-77.312-34.816-77.312-77.312 0-6.144 5.12-11.264 11.264-11.264h632.832c6.144 0 11.264 5.12 11.264 11.264 0 43.008-34.816 77.312-77.312 77.312zM553.472 180.736c-12.288 0-22.016-9.728-22.016-22.016V97.28c0-12.288 9.728-22.016 22.016-22.016s22.016 9.728 22.016 22.016v61.44c0.512 12.288-9.728 22.016-22.016 22.016zM318.976 270.848c-10.752 6.144-24.064 2.56-30.208-8.192l-30.72-53.248c-6.144-10.752-2.56-24.064 8.192-30.208 10.752-6.144 24.064-2.56 30.208 8.192l30.72 53.248c6.144 10.752 2.56 24.064-8.192 30.208zM256 436.736c-3.584 11.776-15.872 18.432-27.648 14.848l-58.88-17.92c-11.776-3.584-18.432-15.872-14.848-27.648 3.584-11.776 15.872-18.432 27.648-14.848l58.88 17.92c11.776 3.584 18.432 15.872 14.848 27.648zM951.808 404.992c4.096 11.776-2.56 24.064-14.336 28.16l-58.368 19.456c-11.776 4.096-24.064-2.56-28.16-14.336-4.096-11.776 2.56-24.064 14.336-28.16l58.368-19.456c11.776-3.584 24.576 2.56 28.16 14.336zM841.216 179.2c10.752 6.144 14.336 19.456 8.192 30.208l-30.72 53.248c-6.144 10.752-19.456 14.336-30.208 8.192-10.752-6.144-14.336-19.456-8.192-30.208l30.72-53.248c6.144-10.24 19.456-14.336 30.208-8.192zM553.472 239.104c-125.44 0-226.816 101.376-226.816 226.816v258.56c0 18.432 14.848 33.28 33.28 33.28H747.52c18.432 0 33.28-14.848 33.28-33.28V465.92c-0.512-125.44-101.888-226.816-227.328-226.816z m68.096 254.464L563.2 629.248c-1.536 4.096-7.68 3.072-8.192-1.024l-11.264-82.432c-0.512-2.048-2.048-3.584-4.096-3.584h-49.664c-3.072 0-5.12-3.072-4.096-6.144l58.368-135.68c1.536-4.096 7.68-3.072 8.192 1.024l11.264 82.432c0.512 2.048 2.048 3.584 4.096 3.584h49.664c3.072 0 5.12 3.072 4.096 6.144z"
+            p-id="4613"
+            fill="#ff7a45"
+          ></path>
+        </svg>
+      );
+      const infoIcon = (
+        <svg
+          t="1641801828732"
+          class="icon"
+          viewBox="0 0 1024 1024"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          p-id="16693"
+          width="30"
+          height="30"
+        >
+          <path
+            d="M694.857143 768v73.142857q0 14.857143-10.857143 25.714286t-25.714286 10.857143H365.714286q-14.857143 0-25.714286-10.857143t-10.857143-25.714286v-73.142857q0-14.857143 10.857143-25.714286t25.714286-10.857143h36.571428V512h-36.571428q-14.857143 0-25.714286-10.857143t-10.857143-25.714286V402.285714q0-14.857143 10.857143-25.714285t25.714286-10.857143h219.428571q14.857143 0 25.714286 10.857143t10.857143 25.714285v329.142857h36.571428q14.857143 0 25.714286 10.857143t10.857143 25.714286zM621.714286 109.714286v109.714285q0 14.857143-10.857143 25.714286t-25.714286 10.857143H438.857143q-14.857143 0-25.714286-10.857143t-10.857143-25.714286V109.714286q0-14.857143 10.857143-25.714286t25.714286-10.857143h146.285714q14.857143 0 25.714286 10.857143t10.857143 25.714286z"
+            p-id="16694"
+            fill="#40a9ff"
+          ></path>
+        </svg>
+      );
+      const totalIcon = (
+        <svg
+          t="1642041793366"
+          class="icon"
+          viewBox="0 0 1024 1024"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          p-id="2410"
+          width="50"
+          height="50"
+        >
+          <path
+            d="M474.45 194.56c-194.56 0-354.99 160.43-354.99 354.98 0 194.56 160.43 354.99 354.99 354.99S829.44 744.1 829.44 549.54H474.45V194.56z"
+            p-id="2411"
+            fill="#1296db"
+          ></path>
+          <path
+            d="M549.54 119.47v354.99h354.99c0-194.57-160.42-354.99-354.99-354.99z"
+            p-id="2412"
+            fill="#1296db"
+          ></path>
+        </svg>
+      );
+      const deleteIcon = (
+        <svg
+          t="1641871298164"
+          class="icon"
+          viewBox="0 0 1024 1024"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          p-id="5325"
+          width="20"
+          height="20"
+        >
+          <path
+            d="M857.2 167.6c22.4 0 41.2 3.6 55.6 11.2 14.8 7.6 26.4 16.8 34.8 28 8.8 11.2 14.8 23.2 18 36.4 3.2 13.2 5.2 25.2 5.2 36.4 0 5.2 0 9.2-0.4 12.4-0.4 2.8-0.4 5.6-0.4 8l0 6.8-74.4 0 0 587.2c0 14.8-2.8 29.2-9.2 43.2-6 13.6-14.8 26-26 36.4-11.2 10.4-24.8 18.8-41.2 25.2-16 6.4-34.8 9.6-55.6 9.6L262.4 1008.4c-19.6 0-38-2.8-55.2-8.8-17.2-6-32-14.4-44.4-25.2-12.4-10.8-22-24-29.2-39.2-7.2-15.2-10.8-32.8-10.8-52l0-576L52.8 307.2c-0.8-0.8-1.2-2.8-1.2-5.6-0.8-3.6-1.2-15.2-1.2-34.8 0-9.6 2.4-20.4 6.8-32.4 4.4-12 11.2-22.8 20.4-32.8 9.2-10 20.8-18.4 34.8-25.2 14.4-6.8 31.2-10 50.8-10l100 0L263.2 97.2c0-19.2 6.8-36 20.4-49.6 13.6-13.6 30-20.8 49.6-20.8l352 0c26.4 0 44.4 6.8 54.4 20.8 10 13.6 15.2 30.4 15.2 49.6l0 69.2c15.6 0.8 32.8 1.2 50.8 1.2L857.2 167.6 857.2 167.6 857.2 167.6zM333.2 167.6l352 0L685.2 97.2l-352 0L333.2 167.6 333.2 167.6zM298.4 875.6c24 0 36-15.2 36-46L334.4 310.8 264.4 310.8l0 518.8c0 15.6 2.4 27.2 7.2 34.8C276.8 871.6 285.6 875.6 298.4 875.6L298.4 875.6 298.4 875.6zM510.8 874.4c12.8 0 21.2-3.6 26-10.8 4.4-7.2 6.8-18.4 6.8-34L543.6 310.8l-69.6 0 0 518.8C473.6 859.6 486 874.4 510.8 874.4L510.8 874.4 510.8 874.4zM722.4 872c13.6 0 22.4-3.6 26.8-10.8 4.4-7.2 6.8-18.4 6.8-34L756 310.8l-70.8 0 0 516.4C685.2 857.2 697.6 872 722.4 872L722.4 872 722.4 872z"
+            p-id="5326"
+            fill="#ff4d4f"
+          ></path>
+        </svg>
+      );
+      const refreshIcon = (
+        <svg
+          t="1641871475566"
+          class="icon"
+          viewBox="0 0 1024 1024"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          p-id="6270"
+          width="20"
+          height="20"
+        >
+          <path
+            d="M918 702.8 918 702.8c45.6-98.8 52-206 26-303.6-30-112.4-104-212.8-211.6-273.6L780 23.2l-270.8 70.8 121.2 252.4 50-107.6c72.8 44.4 122.8 114.4 144 192.8 18.8 70.8 14.4 147.6-18.8 219.6-42 91.2-120.8 153.6-210.8 177.6-13.2 3.6-26.4 6-39.6 8l56 115.6c5.2-1.2 10.4-2.4 16-4C750.8 915.2 860 828.8 918 702.8L918 702.8M343.2 793.2c-74-44.4-124.8-114.8-146-194-18.8-70.8-14.4-147.6 18.8-219.6 42-91.2 120.8-153.6 210.8-177.6 14.8-4 30-6.8 45.6-8.8l-55.6-116c-7.2 1.6-14.8 3.2-22 5.2-124 33.2-233.6 119.6-291.2 245.6-45.6 98.8-52 206-26 303.2l0 0.4c30.4 113.2 105.2 214 213.6 274.8l-45.2 98 270.4-72-122-252L343.2 793.2 343.2 793.2M343.2 793.2 343.2 793.2z"
+            p-id="6271"
+            fill="#21a04c"
+          ></path>
+        </svg>
+      );
+      class Statistics extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = {
+            latestLog: null, // 最新上报的一条数据
+            datas: [],
+            dataRows: 0,
+            total: 0,
+            pageNo: 1,
+            pageSize: 20,
+            selectedLogs: [], // 选中的数据
+            lineType: 'week', // 趋势图数据中 week | day
+          };
+        }
+
+        componentDidMount() {
+          this.getAllData();
+
+          this.timer = setInterval(() => {
+            this.getLatestLog();
+          }, 10 * 60 * 6000); // 十分钟刷新一次
+        }
+
+        componentWillUnmount() {
+          if (this.timer) {
+            clearInterval(this.timer);
+          }
+        }
+
+        /**
+         * 获取整个页面的数据
+         */
+        getAllData = () => {
+          this.getLatestLog();
+          this.getTotalAndPie();
+          this.getLineLogs();
+          this.getLogs();
+        };
+
+        /**
+         * 获取最新一条日志
+         */
+        getLatestLog = () => {
+          xhrGet({
+            url: '/latest',
+            success: (res) => {
+              const { log } = res;
+              this.setState({
+                latestLog: log,
+              });
+            },
+            fail: (error) => {
+              console.warn('fail', error);
+            },
+          });
+        };
+
+        /**
+         * 获取总数以及饼图统计
+         */
+        getTotalAndPie = () => {
+          xhrGet({
+            url: '/datasByType',
+            success: (res) => {
+              const { logs, total } = res;
+              this.setState(
+                {
+                  total,
+                },
+                () => {
+                  if (logs) {
+                    this.drawPieChart(logs);
+                  }
+                },
+              );
+            },
+            fail: (error) => {
+              console.warn('fail', error);
+            },
+          });
+        };
+
+        /**
+         * 获取趋势图数据
+         */
+        getLineLogs = () => {
+          const { pageNo, pageSize, lineType } = this.state;
+          xhrGet({
+            url: '/datasByDay',
+            params: `type=${lineType}`,
+            success: (res) => {
+              if (res && res.logs) {
+                this.drawLineChart(res.logs);
+              }
+            },
+            fail: (error) => {
+              console.warn('fail', error);
+            },
+          });
+        };
+
+        /**
+         * 获取日志数据
+         */
+        getLogs = () => {
+          const { pageNo, pageSize } = this.state;
+          xhrGet({
+            url: '/datas',
+            params: `pageNo=${pageNo}&pageSize=${pageSize}`,
+            success: (res) => {
+              const { logs, total } = res;
+              this.setState({
+                datas: logs,
+                dataRows: total,
+                selectedLogs: [],
+              });
+            },
+            fail: (error) => {
+              console.warn('fail', error);
+            },
+          });
+        };
+
+        /**
+         * 绘制饼图
+         */
+        drawPieChart = (data) => {
+          const seriesData = data.map((item) => {
+            return {
+              name: item.type,
+              value: item.num,
+            };
+          });
+          const yData = data.map((item) => item.type);
+          const option = {
+            tooltip: {
+              trigger: 'item',
+            },
+            legend: {
+              orient: 'vertical',
+              left: 'left',
+            },
+            grid: {
+              bottom: 50,
+            },
+            series: [
+              {
+                type: 'pie',
+                radius: [0, '100%'],
+                avoidLabelOverlap: false,
+                label: {
+                  show: false,
+                  position: 'center',
+                },
+                emphasis: {
+                  label: {
+                    show: true,
+                    fontSize: '18',
+                    fontWeight: 'bold',
+                  },
+                },
+                labelLine: {
+                  show: false,
+                },
+                bottom: 5,
+                data: seriesData,
+              },
+            ],
+          };
+          this.drawEcharts('pie-chart', option);
+        };
+
+        /**
+         * 绘制趋势图
+         */
+        drawLineChart = (data) => {
+          const { lineType } = this.state;
+
+          const formatString = lineType === 'day' ? 'YYYY-MM-DD HH' : 'YYYY-MM-DD';
+          const itemkey = lineType === 'day' ? 'hours' : 'unixtime';
+          const xData = data.map((item) => moment(item[itemkey]).format(formatString));
+          const yData = data.map((item) => item.num);
+          const option = {
+            tooltip: {},
+            color: ['#1296db'],
+            grid: {
+              top: '15px',
+              bottom: '25px',
+            },
+            xAxis: {
+              data: xData,
+            },
+            yAxis: {},
+            series: [
+              {
+                name: '错误数量',
+                type: 'bar',
+                data: yData,
+              },
+            ],
+          };
+          this.drawEcharts('line-chart', option);
+        };
+
+        /**
+         * 绘制echarts图表
+         */
+        drawEcharts = (selector, option) => {
+          const chartDom = document.getElementById(selector);
+          let chartInstance = echarts.getInstanceByDom(chartDom);
+          if (!chartInstance) {
+            chartInstance = echarts.init(chartDom);
+          }
+          chartInstance.clear();
+          chartInstance.setOption(option);
+        };
+
+        /**
+         * 趋势图改变的回调
+         */
+        handleLineChange = (e) => {
+          this.setState(
+            {
+              lineType: e.target.value,
+            },
+            () => {
+              this.getLineLogs();
+            },
+          );
+        };
+
+        /**
+         * 选择行
+         */
+        handleRowChange = (selectedRowKeys, selectedRows) => {
+          this.setState({
+            selectedLogs: selectedRows,
+          });
+        };
+
+        /**
+         * 页码改变的回调
+         */
+        handlePageChange = (page) => {
+          this.setState({ pageNo: page }, () => {
+            this.getLogs();
+          });
+        };
+
+        /**
+         * pageSize变化的回调
+         */
+        handleSizeChange = (current, size) => {
+          this.setState({ pageNo: 1, pageSize: size }, () => {
+            this.getLogs();
+          });
+        };
+
+        /**
+         * 删除错误数据
+         */
+        handleDeleteLogs = () => {
+          Modal.confirm({
+            title: '确定删除?',
+            onOk: this.deleteLogs,
+          });
+        };
+
+        deleteLogs = () => {
+          const { selectedLogs } = this.state;
+          const values = selectedLogs.map((log) => log.id);
+          xhrGet({
+            url: '/deleteLogs',
+            params: `ids=${values}`,
+            success: (res) => {
+              this.setState(
+                {
+                  pageNo: 1,
+                },
+                () => {
+                  this.getAllData();
+                },
+              );
+            },
+            fail: (error) => {
+              console.warn('fail', error);
+            },
+          });
+        };
+
+        /**
+         * 渲染最新的一条错误信息
+         */
+        renderLatestLog = () => {
+          const { latestLog } = this.state;
+          if (latestLog) {
+            const {
+              type,
+              message,
+              level = 'info',
+              timestamp,
+              updateTime,
+              userAgent,
+              pageUrl,
+              request,
+              response,
+              customInfo,
+            } = latestLog;
+            const time = updateTime || timestamp;
+            return (
+              <>
+                <div className="card-title">最新错误 - {type || '未定义的类型'}</div>
+                <div className="log-info">
+                  <span className="log-info-label">错误级别: </span>
+                  <Tag
+                    color={
+                      {
+                        error: '#ff4d4f',
+                        warn: '#ff7a45',
+                        info: '#40a9ff',
+                      }[level] || '#40a9ff'
+                    }
+                  >
+                    {level}
+                  </Tag>
+                </div>
+                <div className="log-info">
+                  <span className="log-info-label">错误信息: </span>
+                  {message}
+                </div>
+
+                {time && (
+                  <div className="log-info">
+                    <span className="log-info-label">上报时间: </span>
+                    {moment(time).format('YYYY-MM-DD HH:mm:ss')}
+                  </div>
+                )}
+                {pageUrl && (
+                  <div className="log-info">
+                    <span className="log-info-label">页面地址: </span>
+                    {pageUrl}
+                  </div>
+                )}
+                {request && (
+                  <div className="log-info">
+                    <span className="log-info-label">请求数据: </span>
+                    {request}
+                  </div>
+                )}
+                {response && (
+                  <div className="log-info">
+                    <span className="log-info-label">响应数据: </span>
+                    {response}
+                  </div>
+                )}
+                {userAgent && (
+                  <div className="log-info">
+                    <span className="log-info-label">浏览器信息: </span> {userAgent}
+                  </div>
+                )}
+                {customInfo && (
+                  <div className="log-info">
+                    <span className="log-info-label">自定义信息: </span>
+                    {customInfo}
+                  </div>
+                )}
+              </>
+            );
+          }
+          return (
+            <>
+              <div className="card-title">暂无错误数据</div>
+            </>
+          );
+        };
+
+        /**
+         * 渲染总数量
+         */
+        renderTotalAndPie = () => {
+          const { total } = this.state;
+
+          return (
+            <>
+              <div className="card-title">现存错误类型统计</div>
+              <Row>
+                <Col span={6}>
+                  <div style={{ textAlign: 'center' }}>{totalIcon}</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: '18px', fontWeight: '600', color: '#1296db' }} title="错误总数">
+                      {total}
+                    </span>
+                  </div>
+                </Col>
+                <Col span={18}>
+                  <div id="pie-chart" style={{ width: '100%', height: '200px' }} />
+                </Col>
+              </Row>
+            </>
+          );
+        };
+
+        /**
+         * 渲染趋势图
+         */
+        renderLine = () => {
+          const { lineType } = this.state;
+          return (
+            <>
+              <div className="card-title">错误趋势图</div>
+              <div>
+                <Radio.Group value={lineType} onChange={this.handleLineChange}>
+                  <Radio value="week">一周</Radio>
+                  <Radio value="day">当天</Radio>
+                </Radio.Group>
+              </div>
+              <div>
+                <div id="line-chart" style={{ width: '100%', height: '400px' }} />
+              </div>
+            </>
+          );
+        };
+
+        /**
+         * 渲染日志内容
+         */
+        renderLogs = () => {
+          const { datas, dataRows, pageNo, pageSize } = this.state;
+
+          const columns = [
+            {
+              title: '类型',
+              dataIndex: 'type',
+              key: 'type',
+              width: '10%',
+              render: (text) => <div className="log-info-type">{text || '未定义的类型'}</div>,
+            },
+            {
+              title: '级别',
+              dataIndex: 'level',
+              key: 'level',
+              width: '6%',
+              render: (text) => ({ error: errorIcon, warn: warnIcon, info: infoIcon }[text || 'info'] || infoIcon),
+            },
+            {
+              title: '错误描述',
+              dataIndex: 'message',
+              key: 'message',
+              render: (text, record) => {
+                const { message, type, userAgent, pageUrl, level, request, response, customInfo } = record;
+                return (
+                  <div>
+                    {message && (
+                      <div className="log-info">
+                        <span className="log-info-label">错误信息: </span> {message}
+                      </div>
+                    )}
+                    {pageUrl && (
+                      <div className="log-info">
+                        <span className="log-info-label">页面地址: </span>
+                        {pageUrl}
+                      </div>
+                    )}
+                    {request && (
+                      <div className="log-info">
+                        <span className="log-info-label">请求数据: </span>
+                        {request}
+                      </div>
+                    )}
+                    {response && (
+                      <div className="log-info">
+                        <span className="log-info-label">响应数据: </span>
+                        {response}
+                      </div>
+                    )}
+                    {userAgent && (
+                      <div className="log-info">
+                        <span className="log-info-label">浏览器信息: </span> {userAgent}
+                      </div>
+                    )}
+                    {customInfo && (
+                      <div className="log-info">
+                        <span className="log-info-label">自定义信息: </span>
+                        {customInfo}
+                      </div>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
+              title: '最新上报时间',
+              dataIndex: 'updateTime',
+              key: 'updateTime',
+              width: '15%',
+              render: (text) => moment(text).format('YYYY-MM-DD HH:mm:ss'),
+            },
+            {
+              title: '错误次数',
+              dataIndex: 'count',
+              key: 'count',
+              width: '8%',
+            },
+          ];
+
+          return (
+            <Table
+              rowKey="id"
+              dataSource={datas}
+              columns={columns}
+              scroll={{ y: 800 }}
+              rowSelection={{
+                onChange: this.handleRowChange,
+              }}
+              pagination={{
+                showSizeChanger: true,
+                showTotal: () => `报错数据总条数[${dataRows}]`,
+                pageSizeOptions: ['10', '20', '50', '100'],
+                total: dataRows,
+                current: pageNo,
+                pageSize,
+                onChange: this.handlePageChange,
+                onShowSizeChange: this.handleSizeChange,
+              }}
+            />
+          );
+        };
+
+        render() {
+          return (
+            <div className="container">
+              <Card>
+                <Row>
+                  <Col span={12}>{this.renderLatestLog()}</Col>
+                  <Col span={10} style={{ marginLeft: '24px', paddingLeft: '24px', borderLeft: '2px solid #eeeeee' }}>
+                    {this.renderTotalAndPie()}
+                  </Col>
+                </Row>
+              </Card>
+
+              <Card className="card">{this.renderLine()}</Card>
+
+              <Card className="card">
+                <div style={{ marginBottom: '12px', display: 'flex' }}>
+                  <div style={{ marginRight: '12px', cursor: 'pointer' }} onClick={this.getAllData} title="刷新列表">
+                    {refreshIcon}
+                  </div>
+                  <div style={{ cursor: 'pointer' }} onClick={this.handleDeleteLogs} title="删除数据">
+                    {deleteIcon}
+                  </div>
+                </div>
+                {this.renderLogs()}
+              </Card>
+            </div>
+          );
+        }
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(Statistics), domContainer);
+    </script>
+  </body>
+</html>

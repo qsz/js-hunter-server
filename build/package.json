@@ -1,0 +1,15 @@
+{
+  "name": "js-hunter-server-build",
+  "version": "1.0.0",
+  "description": "前端异常监控服务端镜像",
+  "main": "out/app.js",
+  "scripts": {
+    "start": "nodemon out/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "nodemon": "^2.0.15"
+  }
+}

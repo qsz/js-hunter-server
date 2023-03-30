@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>日志数据</title>
+    <script src="/js/babel.min.js"></script>
+    <script src="/js/react.production.min.js"></script>
+    <script src="/js/react-dom.production.min.js"></script>
+    <script src="/js/moment.min.js"></script>
+    <script src="/js/antd.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/antd.min.css" />
+    <style>
+      p {
+        padding: 12px;
+      }
+      .log-row {
+        position: relative;
+        border-bottom: 2px dashed #dcdcdc;
+      }
+      .log-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        cursor: pointer;
+      }
+      .reverse-btn {
+        cursor: pointer;
+      }
+      .log-content {
+        color: #000000;
+        padding: 24px 24px;
+      }
+      .log-info {
+        word-wrap: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/babel">
+      const xhrGet = ({ url, success, fail }) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        // 响应状态事件监听函数
+        xhr.onreadystatechange = function () {
+          try {
+            // 监听readyState 4:响应内容解析完成
+            // 监听HTTP状态码
+            if (xhr.readyState == 4 && (xhr.status == 200 || xhr.status == 0)) {
+              if (success) {
+                const res = JSON.parse(xhr.responseText);
+                success(res);
+              }
+            }
+          } catch (error) {
+            if (fail) {
+              fail(error);
+            }
+          }
+        };
+        xhr.send();
+      };
+
+      const Button = antd.Button;
+      const Modal = antd.Modal;
+      class Statistics extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = {
+            datas: [],
+            activeLog: null,
+            reverse: false,
+          };
+        }
+
+        componentDidMount() {
+          this.getLogsData();
+        }
+
+        // 获取日志数据
+        getLogsData = () => {
+          xhrGet({
+            url: '/datas',
+            success: (res) => {
+              const datas = [];
+              res.forEach((logs) => {
+                const result = logs.split('__js_hunter__');
+                result.forEach((dataString) => {
+                  if (dataString) {
+                    const data = JSON.parse(dataString);
+                    if (data) {
+                      datas.push(JSON.parse(data));
+                    }
+                  }
+                });
+              });
+              this.setState({
+                datas,
+              });
+            },
+            fail: (error) => {
+              console.warn('fail', error);
+            },
+          });
+        };
+
+        // 渲染日志内容
+        renderLogs = () => {
+          const { datas } = this.state;
+          let content = [];
+          try {
+            datas.forEach((log, index) => {
+              const { timestamp, message } = log;
+              content.push(
+                <p key={index} className="log-row">
+                  <div>上报时间: {new Date(timestamp).toLocaleString()}</div>
+                  <div>报错信息: {message}</div>
+                  <Button className="log-btn" onClick={() => this.handleLogClick(log)}>
+                    查看详情
+                  </Button>
+                </p>,
+              );
+            });
+          } catch (err) {
+            //
+          }
+          return content;
+        };
+
+        // 点击日志查看详情
+        handleLogClick = (log) => {
+          this.setState({
+            activeLog: log,
+          });
+        };
+
+        // 正序 倒序排列
+        handleReverse = () => {
+          const { reverse, datas } = this.state;
+          this.setState({
+            reverse: !reverse,
+            datas: datas.reverse(),
+          });
+        };
+
+        // 关闭详情弹窗
+        handleCloseModal = () => {
+          this.setState({
+            activeLog: null,
+          });
+        };
+
+        // 渲染日志详情
+        renderActiveLogContent = () => {
+          const { reverse, activeLog, datas } = this.state;
+
+          if (activeLog) {
+            const { timestamp, message, type, originType, userAgent, pageUrl, level, request, response } = activeLog;
+            return (
+              <div className="log-content">
+                {timestamp && <div className="log-info">上报时间: {new Date(timestamp).toLocaleString()}</div>}
+                {message && <div className="log-info">报错信息: {message}</div>}
+                {type && <div className="log-info">错误类型: {type}</div>}
+                {originType && <div className="log-info">原生事件类型类型: {originType}</div>}
+                {level && <div className="log-info">错误级别: {level}</div>}
+                {request && <div className="log-info">请求数据: {JSON.stringify(request)}</div>}
+                {response && <div className="log-info">响应数据: {JSON.stringify(response)}</div>}
+                {userAgent && <div className="log-info">浏览器信息: {userAgent}</div>}
+                {pageUrl && <div className="log-info">页面地址: {pageUrl}</div>}
+              </div>
+            );
+          }
+          return null;
+        };
+
+        render() {
+          const { reverse, activeLog, datas } = this.state;
+
+          return (
+            <div>
+              <h1>日志数据页面1</h1>
+              <div>
+                <Button type="primary" onClick={this.handleReverse} className="reverse-btn">
+                  最新时间{reverse ? '正序' : '倒序'}
+                </Button>
+                <div>报错总数: {datas.length}</div>
+              </div>
+              {this.renderLogs()}
+
+              <Modal visible={!!activeLog} title="Basic Modal">
+                {this.renderActiveLogContent()}
+              </Modal>
+            </div>
+          );
+        }
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(Statistics), domContainer);
+    </script>
+  </body>
+</html>

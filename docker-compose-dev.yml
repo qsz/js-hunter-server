@@ -1,0 +1,23 @@
+# 开发环境
+version: "1.0"
+
+services:
+  web:
+    restart: always # 定义容器重启策略
+    image: yourlibrary/library/node # node镜像名称
+    working_dir: /home/jshunterserver # 工作目录
+    volumes: # 挂载点
+      - .:/home/jshunterserver # 把本地目录挂载到容器的/home/jshunterserver目录
+    ports: # 端口映射
+      - "3400:3300" # 本地端口：容器端口
+    command: npm run watch # 这条命令会在工作目录下执行
+  mysql:
+    restart: always
+    image: yourlibrary/library/mysql
+    volumes:
+      - ./volumes/mysql:/var/lib/mysql # 映射容器内的 /var/lib/mysql 到宿主机的 /volumes
+    environment: # 环境变量
+      - MYSQL_ROOT_PASSWORD=123456 # mysql的root密码
+      - MYSQL_DATABASE=js_hunter_docker # mysql的初始化数据库
+    ports:
+      - "3401:3306" # 默认端口号 3306
