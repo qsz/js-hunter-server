@@ -65,6 +65,6 @@ docker-compose up -d
 
 ## 平台展示
 
-`/logs.html` 错误日志数据页面
+`/logs.html`
 ![错误统计](./static/错误统计页面展示.png)
 ![错误数据](./static/错误数据页面展示.png)
